@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
+          integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+</head>
+<body>
+    <button id="new-post" type="submit" class="btn btn-primary">New Post</button>
+
+    <form method="POST" id="post-form">
+        <div class="form-group">
+            <label for="korisnik-name">Name</label>
+            <input type="text" class="form-control" id="korisnik-name" placeholder="Enter name">
+
+            <label for="korisnik-lastname">Lastname</label>
+            <input type="text" class="form-control" id="korisnik-lastname" placeholder="Enter lastname">
+
+            <label for="korisnik-email">Email</label>
+            <input type="text" class="form-control" id="korisnik-email" placeholder="Enter email">
+
+            <label for="korisnik-password">Password</label>
+            <input type="text" class="form-control" id="korisnik-password" placeholder="Enter password">
+
+            <label for="korisnik-type">Type</label>
+            <input type="text" class="form-control" id="korisnik-type" placeholder="Enter type">
+
+            <label for="korisnik-status">Status</label>
+            <input type="text" class="form-control" id="korisnik-status" placeholder="Enter status">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+    <br>
+    <br>
+
+    <div id="korisnik-details">
+        <h1 id="name">Name</h1>
+        <small id="lastname">Lastname</small>
+        <small id="email">Email</small>
+        <small id="password">Password</small>
+        <small id="type">typr</small>
+        <small class="text-muted" id="status">status</small>
+    </div>
+
+    <div id="list">
+
+    </div>
+</body>
+</html>
+
+<script>
+    fetch('/api/korisnici', {
+        method: 'GET'
+    }).then(response => {
+        return response.json();
+    }).then(korisnici => {
+        for (const korisnik of korisnici) {
+            addSubjectElements(korisnik)
+        }
+    })
+
+    let korisnik_id = 0;
+    function addSubjectElements(korisnik) {
+
+        const subjectLinks = document.getElementById('list');
+
+        const listEl = document.createElement('a');
+        listEl.classList.add('list-group-item', 'list-group-item-action', 'flex-column', 'align-items-start');
+
+        listEl.onclick = function (e) {
+            korisnikDetails(korisnik_id, korisnik.name, korisnik.lastname,korisnik.email,korisnik.password,korisnik.type,korisnik.status);
+            korisnik_id = korisnik.id;
+        }
+
+        const divL = document.createElement('div');
+        divL.classList.add('d-flex', 'w-100', 'justify-content-between');
+
+        const name = document.createElement('h5');
+        name.classList.add('mb-1');
+        name.innerText = korisnik.name;
+
+        const lastname = document.createElement('p');
+        lastname.classList.add('mb-1');
+        lastname.innerText = korisnik.lastname;
+
+        const email = document.createElement('p');
+        email.classList.add('mb-1');
+        email.innerText = korisnik.email;
+
+        const password = document.createElement('p');
+        password.classList.add('mb-1');
+        password.innerText = korisnik.password;
+
+        const type = document.createElement('p');
+        type.classList.add('mb-1');
+        type.innerText = korisnik.type;
+
+        const status = document.createElement('p');
+        status.classList.add('mb-1');
+        status.innerText = korisnik.status;
+
+
+        divL.appendChild(name);
+
+        listEl.appendChild(divL);
+        listEl.appendChild(lastname);
+        listEl.appendChild(email);
+        listEl.appendChild(password);
+        listEl.appendChild(type);
+        listEl.appendChild(status);
+
+        const linkWrapperDiv = document.createElement('div');
+        linkWrapperDiv.classList.add('list-group');
+        linkWrapperDiv.appendChild(listEl);
+
+        subjectLinks.appendChild(linkWrapperDiv);
+    }
+
+    function korisnikDetails(id, name, lastname, email, password, type, status){
+
+        document.getElementById("name").innerText = name;
+        document.getElementById("lastname").innerText = lastname;
+        document.getElementById("email").innerText = email;
+        document.getElementById("password").innerText = password;
+        document.getElementById("type").innerText = type;
+        document.getElementById("status").innerText = status;
+
+    }
+
+    document.getElementById("post-form").addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const nameElement = document.getElementById('korisnik-name');
+        const lastnameElement = document.getElementById('korisnik-lastname');
+        const emailElement = document.getElementById('korisnik-email');
+        const passwordElement = document.getElementById('korisnik-password');
+        const typeElement = document.getElementById('korisnik-type');
+        const statusElement = document.getElementById('korisnik-status');
+
+        const name = nameElement.value;
+        const lastname = lastnameElement.value;
+        const email = emailElement.value;
+        const password = passwordElement.value;
+        const type = typeElement.value;
+        const status = statusElement.value;
+
+        fetch('/api/korisnici', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                lastname: lastname,
+                email: email,
+                password: password,
+                type: type,
+                status: status,
+            })
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        }).then(korisnik => {
+            addSubjectElements(korisnik)
+            nameElement.value = '';
+            lastnameElement.value = '';
+            emailElement.value = '';
+            passwordElement.value = '';
+            typeElement.value = '';
+            statusElement.value = '';
+        })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    })
+</script>

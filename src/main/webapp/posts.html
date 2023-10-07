@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Public Blog</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
+          integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+</head>
+<body>
+<div class="container">
+    <h1 class="naslov">Public Blog</h1>
+
+    <div id="list">
+
+    </div>
+
+    <form method="POST" id="login" class="text-center">
+        <div class="form-group">
+            <h5>Login</h5>
+            <label for="username">Author: </label>
+            <input type="text" class="form-control" id="username" placeholder="Enter author">
+
+            <label for="post-title">Password: </label>
+            <input type="password" class="form-control" id="password" placeholder="Enter title">
+
+        </div>
+
+        <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+
+    <button id="new-post" type="submit" class="btn btn-primary">New Post</button>
+
+    <form method="POST" id="post-form">
+        <div class="form-group">
+            <label for="post-author">Author</label>
+            <input type="text" class="form-control" id="post-author" placeholder="Enter author">
+
+            <label for="post-title">Title</label>
+            <input type="text" class="form-control" id="post-title" placeholder="Enter title">
+
+            <label for="post-content">Content</label>
+            <textarea class="form-control" id="post-content"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+    <br>
+    <br>
+
+    <div id="post-details">
+        <h1 id="naslov">Naslov</h1>
+        <small id="date">date</small>
+        <br>
+        <small class="text-muted" id="autor">Djordje</small>
+        <p id="content">Lcdesvfprgojefdokvfkomv</p>
+    </div>
+
+    <h5 id="com-header">Comments</h5>
+    <div id="comments-list">
+    </div>
+
+    <form method="POST" id="comment-form">
+        <br>
+        <h6>New comment</h6>
+        <div class="form-group">
+            <label for="comment-author">Name</label>
+            <input type="text" class="form-control" id="comment-author" placeholder="Enter author">
+
+            <label for="comment-content">Comment</label>
+            <textarea class="form-control" id="comment-content"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+</div>
+<br>
+<br>
+
+
+
+
+<script>
+
+    hidePostInfo();
+    document.getElementById("new-post").hidden = true;
+
+    document.getElementById("login").addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const usernameElement = document.getElementById('username');
+        const passwordElement = document.getElementById('password');
+
+        const username = usernameElement.value;
+        const password = passwordElement.value;
+
+        fetch('/api/users/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        }).then(response => {
+            return response.json();
+        }).then(msg => {
+                console.log(msg);
+                if (!msg.jwt) {
+                    console.log('Request failed with JSON response: ', msg.message);
+                } else {
+                    usernameElement.value = '';
+                    passwordElement.value = '';
+                    loggedIn(msg.jwt);
+                }
+
+        }).catch(error => {
+            console.error('Request failed', error);
+        });
+    })
+
+    function hidePostInfo(){
+        document.getElementById("post-form").hidden = true;
+        document.getElementById("post-details").hidden = true;
+        document.getElementById("comment-form").hidden = true;
+        document.getElementById("comments-list").hidden = true;
+        document.getElementById("com-header").hidden = true;
+    }
+
+
+    function loggedIn(jwt_token){
+
+        const [header, payload, signature] = jwt_token.split('.');
+        const decodedPayload = atob(payload);
+        const payloadObject = JSON.parse(decodedPayload);
+        const username = payloadObject.sub;
+
+        console.log(username);
+
+        const authorElement1 = document.getElementById('post-author');
+        authorElement1.value = username;
+
+        const authorElement2 = document.getElementById('comment-author');
+        authorElement2.value = username;
+
+
+        document.getElementById("login").hidden = true;
+        document.getElementById("new-post").hidden = false;
+
+        fetch('/api/posts', {
+            method: 'GET',
+            headers:{'Authorization': `Bearer ${jwt_token}`}
+        }).then(response => {
+            return response.json();
+        }).then(posts => {
+            for (const post of posts) {
+                addSubjectElements(post)
+            }
+        })
+
+        let post_id = 0;
+        function addSubjectElements(post) {
+            hidePostInfo();
+            document.getElementById("list").hidden = false;
+            document.getElementById('new-post').hidden = false;
+
+
+            const subjectLinks = document.getElementById('list');
+
+            const listEl = document.createElement('a');
+            listEl.classList.add('list-group-item', 'list-group-item-action', 'flex-column', 'align-items-start');
+
+            listEl.onclick = function (e) {
+                console.log(post.date)
+                postDetails(post.title, post.author, post.content, post.id, post.date);
+                post_id = post.id;
+            }
+
+            const divL = document.createElement('div');
+            divL.classList.add('d-flex', 'w-100', 'justify-content-between');
+
+            const title = document.createElement('h5');
+            title.classList.add('mb-1');
+            title.innerText = post.title;
+
+            const content = document.createElement('p');
+            content.classList.add('mb-1');
+            content.innerText = post.content;
+
+            const opsirnije = document.createElement('small');
+            opsirnije.classList.add('text-muted')
+            opsirnije.innerText = "Opširnije."
+
+            divL.appendChild(title);
+
+            listEl.appendChild(divL);
+            listEl.appendChild(content);
+            listEl.appendChild(opsirnije);
+
+            const linkWrapperDiv = document.createElement('div');
+            linkWrapperDiv.classList.add('list-group');
+            linkWrapperDiv.appendChild(listEl);
+
+            subjectLinks.appendChild(linkWrapperDiv);
+        }
+
+        const newPost = document.getElementById('new-post');
+        newPost.style.marginTop = '10px'
+        newPost.onclick = function (e) {
+            newPostClicked();
+        }
+
+        function postDetails(title, author, content, id, date){
+            document.getElementById("post-form").hidden = true;
+            document.getElementById("list").hidden = true;
+            document.getElementById('new-post').hidden = true;
+
+            document.getElementById("post-details").hidden = false;
+            document.getElementById("com-header").hidden = false;
+
+
+            document.getElementById("naslov").innerText = title;
+            document.getElementById("autor").innerText = author;
+            document.getElementById("content").innerText = content;
+            document.getElementById("date").innerText = date;
+
+
+            fetch('/api/comments/bypost/'+id, {
+                method: 'GET',
+                headers:{'Authorization': `Bearer ${jwt_token}`}
+            }).then(response => {
+                return response.json();
+            }).then(comments => {
+                for (const com of comments) {
+                    addComments(com)
+                }
+            })
+
+            document.getElementById("comment-form").hidden = false;
+
+        }
+
+        function addComments(com){
+            document.getElementById("comments-list").hidden = false;
+            const list = document.getElementById("comments-list");
+
+            const listEl = document.createElement('a');
+            listEl.classList.add('list-group-item', 'list-group-item-action', 'flex-column', 'align-items-start');
+
+            const divL = document.createElement('div');
+            divL.classList.add('d-flex', 'w-100', 'justify-content-between');
+
+            const name = document.createElement('h5');
+            name.classList.add('mb-1');
+            name.innerText = com.author;
+
+            const comment = document.createElement('p');
+            comment.classList.add('mb-1');
+            comment.innerText = com.comment;
+
+            divL.appendChild(name);
+
+            listEl.appendChild(divL);
+            listEl.appendChild(comment);
+
+            const linkWrapperDiv = document.createElement('div');
+            linkWrapperDiv.classList.add('list-group');
+            linkWrapperDiv.appendChild(listEl);
+
+            list.appendChild(linkWrapperDiv);
+
+        }
+
+        function newPostClicked(){
+            document.getElementById("post-form").hidden = false;
+            document.getElementById("list").hidden = true;
+            document.getElementById("post-details").hidden = true;
+            document.getElementById('new-post').hidden = true;
+        }
+
+        document.getElementById("comment-form").addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const contentElement = document.getElementById('comment-content');
+            const authorElement = document.getElementById('comment-author');
+
+            const content = contentElement.value;
+            const author = authorElement.value;
+
+            fetch('/api/comments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${jwt_token}`
+                },
+                body: JSON.stringify({
+                    author: author,
+                    comment: content,
+                    postId: post_id
+                })
+            }).then(response => {
+                return response.json();
+            }).then(com => {
+                addComments(com)
+                contentElement.value = '';
+            })
+        })
+
+        document.getElementById("post-form").addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const subjectTitleElement = document.getElementById('post-title');
+            const contentElement = document.getElementById('post-content');
+            const authorElement = document.getElementById('post-author');
+
+
+            const title = subjectTitleElement.value;
+            const content = contentElement.value;
+            const author = authorElement.value;
+
+            fetch('/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${jwt_token}`
+                },
+                body: JSON.stringify({
+                    title: title,
+                    author: author,
+                    content: content,
+                    date: "date"
+                })
+            }).then(response => {
+                return response.json();
+            }).then(post => {
+                addSubjectElements(post)
+                subjectTitleElement.value = '';
+                contentElement.value = '';
+            })
+        })
+    }
+
+</script>
+</body>
+</html>
